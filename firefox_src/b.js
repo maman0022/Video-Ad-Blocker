@@ -7,18 +7,33 @@ function nbcURL(requestDetails) {
       .then(a => {
         a.text()
           .then(b => {
-            fetch(b.match(/https:\/\/.+?manifest.+?theplatform\.com.+$/m)[0])
+            let final;
+            let highestRes = 0;
+            let highestBand = 0;
+            let all = b.match(/BANDWIDTH=(.+\n)+?#/mg);
+            let last = b.match(/BANDWIDTH=.+/mg);
+            let lastOne = last.pop();
+            all.push(lastOne);
+            all.forEach(v => {
+              if (parseInt(v.match(/\d+/)[0]) > highestBand && parseInt(v.match(/RESOLUTION=(\d+)/)[1]) >= highestRes) {
+                highestBand = parseInt(v.match(/\d+/)[0]);
+                highestRes = parseInt(v.match(/RESOLUTION=(\d+)/)[1]);
+                final = v.match(/https:.+/)[0].replace('"', '');
+              }
+            })
+            fetch(final)
               .then(c => {
                 c.text()
-                .then(d => {
-                  var str = d.replace(/https:\/\/tvessa.+ts/g, '');
-                  var str2 = URL.createObjectURL(new Blob([str]))
-                  browser.storage.local.set({ url: str2, drm: false })
-                    .then(() => {
-                      browser.tabs.query({ active: true, currentWindow: true }, function (tabs) { browser.tabs.sendMessage(tabs[0].id, {}); });
-                      browser.tabs.create({ url: "player.html" })
-                    })
-                })
+                  .then(d => {
+                    var removeBeginning = d.replace(/(#EXT-X-MEDIA-SEQUENCE:1\n#ANVATO-SEGMENT-INFO: type=master)\n#EXTINF:.+?,\nhttps:\/\/.+?[tvessai|akamaihd.net/i/ads].+(?:\n.+){1,10}\n#EXT-X-DISCONTINUITY/m, '$1')
+                    var removeOthers = removeBeginning.replace(/(#EXT-X-DISCONTINUITY)(?:\n.+)+?\n#ANVATO-AD-BREAK\n/gm, '$1');
+                    var str2 = URL.createObjectURL(new Blob([removeOthers]));
+                    browser.storage.local.set({ url: str2, drm: false, cbs: false })
+                      .then(() => {
+                        browser.tabs.query({ active: true, currentWindow: true }, function (tabs) { browser.tabs.sendMessage(tabs[0].id, {}); });
+                        browser.tabs.create({ url: "player.html" })
+                      })
+                  })
               })
           })
       })
@@ -36,7 +51,7 @@ function foxURL(requestDetails) {
           .then(b => {
             var str = b.replace(/htt.+H00.+/g, '').replace(/htt.+E00.+/g, '').replace(/htt.+I00.+/g, '').replace(/htt.+si(=|%3D)2./g, '').replace(/https.+\/\/.+\/check\?.+/g, '').replace(/#EXTINF.+\n[^h]/g, '');
             var str2 = URL.createObjectURL(new Blob([str]))
-            browser.storage.local.set({ url: str2, drm: false })
+            browser.storage.local.set({ url: str2, drm: false, cbs: false })
               .then(() => {
                 browser.tabs.query({ active: true, currentWindow: true }, function (tabs) { browser.tabs.sendMessage(tabs[0].id, {}); });
                 browser.tabs.create({ url: "player.html" })
@@ -52,7 +67,7 @@ function foxURL(requestDetails) {
         parser = new DOMParser();
         xmlDoc = parser.parseFromString(b, "text/xml");
         liurl = xmlDoc.getElementsByTagName('ms:laurl')[0].getAttribute('licenseUrl');
-        browser.storage.local.set({ url: requestDetails.url, drm: true, lurl: liurl })
+        browser.storage.local.set({ url: requestDetails.url, drm: true, lurl: liurl, cbs: false })
           .then(() => {
             browser.tabs.query({ active: true, currentWindow: true }, function (tabs) { browser.tabs.sendMessage(tabs[0].id, {}); });
             browser.tabs.create({ url: "player.html" })
@@ -61,6 +76,26 @@ function foxURL(requestDetails) {
     })
   }
 
+}
+
+function cbsAuthURL(requestDetails) {
+  for (let header of requestDetails.requestHeaders) {
+    if (header.name.toLowerCase() === 'authorization') {
+      browser.webRequest.onBeforeSendHeaders.removeListener(cbsAuthURL);
+      browser.storage.local.set({ cbsAuth: header.value, drm: false, cbsWvUrl: requestDetails.url, cbs: true })
+        .then(() => {
+          browser.tabs.query({ active: true, currentWindow: true }, function (tabs) { browser.tabs.sendMessage(tabs[0].id, {}); });
+          browser.tabs.create({ url: "player.html" })
+        })
+    }
+  }
+}
+
+function cbsURL(requestDetails) {
+  if (requestDetails.url.includes('stream.mpd')) {
+    browser.webRequest.onBeforeRequest.removeListener(cbsURL);
+    browser.storage.local.set({ url: requestDetails.url })
+  }
 }
 
 function startMonitor() {
@@ -72,6 +107,17 @@ function startMonitor() {
   browser.webRequest.onBeforeRequest.addListener(
     nbcURL,
     { urls: ["*://*.theplatform.com/*"] }
+  );
+
+  browser.webRequest.onBeforeSendHeaders.addListener(
+    cbsAuthURL,
+    { urls: ["https://cbsi.live.ott.irdeto.com/widevine/*"] },
+    ["requestHeaders"]
+  );
+
+  browser.webRequest.onBeforeRequest.addListener(
+    cbsURL,
+    { urls: ["https://vod-gcs-cedexis.cbsaavideo.com/*"] }
   );
 }
 

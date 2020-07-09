@@ -20,6 +20,36 @@ browser.storage.local.get(null).then(a => {
       width: "60%"
     }
   }
+  else if (a.cbs) {
+    setup = {
+      "playlist": [
+        {
+          "sources": [
+            {
+              file: a.url,
+              drm: {
+                widevine: {
+                  url: a.cbsWvUrl,
+                  "headers": [
+                    {
+                      "name": "Access-Control-Request-Headers",
+                      "value": "authorization"
+                    },
+                    {
+                      "name": "Authorization",
+                      "value": a.cbsAuth
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "autostart": true,
+      width: "60%"
+    }
+  }
   else {
     setup = {
       "playlist": [
@@ -36,5 +66,5 @@ browser.storage.local.get(null).then(a => {
       width: "60%"
     }
   }
-    jwplayer("videoContainer").setup(setup);
+  jwplayer("videoContainer").setup(setup);
 })

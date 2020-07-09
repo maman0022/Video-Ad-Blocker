@@ -1,26 +1,35 @@
 {
   "description": "Play NBC,ABC,and FOX videos without ads",
   "manifest_version": 2,
-  "name": "NBC,ABC,FOX Adblocker",
-  "version": "3.4",
-
+  "name": "NBC,ABC,FOX,CBS Adblocker",
+  "version": "1.35",
   "content_scripts": [
     {
-      "matches": ["*://*.nbc.com/*", "*://*.fox.com/*", "*://*.abc.com/*"],
-      "js": ["c.js"]
+      "matches": [
+        "*://*.nbc.com/*",
+        "*://*.fox.com/*",
+        "*://*.abc.com/*",
+        "*://*.cbs.com/*"
+      ],
+      "js": [
+        "c.js"
+      ]
     }
   ],
-
   "permissions": [
     "webRequest",
     "*://*.theplatform.com/*",
     "*://*.uplynk.com/*",
-     "*://*.fox.com/*",
-     "*://*.abc.com/*",
+    "*://*.fox.com/*",
+    "*://*.abc.com/*",
+    "*://*.cbs.com/*",
+    "https://cbsi.live.ott.irdeto.com/widevine/*",
+    "https://vod-gcs-cedexis.cbsaavideo.com/*",
     "storage"
   ],
-
   "background": {
-    "scripts": ["b.js"]
+    "scripts": [
+      "b.js"
+    ]
   }
 }
