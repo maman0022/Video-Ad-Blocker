@@ -25,8 +25,7 @@ function nbcURL(requestDetails) {
               .then(c => {
                 c.text()
                   .then(d => {
-                    var removeBeginning = d.replace(/(#EXT-X-MEDIA-SEQUENCE:1\n#ANVATO-SEGMENT-INFO: type=master)\n#EXTINF:.+?,\nhttps:\/\/.+?[tvessai|akamaihd.net/i/ads].+(?:\n.+){1,10}\n#EXT-X-DISCONTINUITY/m, '$1')
-                    var removeOthers = removeBeginning.replace(/(#EXT-X-DISCONTINUITY)(?:\n.+)+?\n#ANVATO-AD-BREAK\n/gm, '$1');
+                    var removeOthers=d.replace(/#EXTINF.+\n.+(?:tvessai|akamaihd\.net\/i\/ads).+/gm, '');
                     var str2 = URL.createObjectURL(new Blob([removeOthers]));
                     browser.storage.local.set({ url: str2, drm: false, cbs: false })
                       .then(() => {
